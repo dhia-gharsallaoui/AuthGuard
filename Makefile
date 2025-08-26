@@ -63,7 +63,7 @@ deps: ## Download and tidy dependencies
 # Development environment with nginx
 dev-up: ## Start development environment (nginx + authguard + redis)
 	@echo "🚀 Starting AuthGuard development environment..."
-	@docker-compose -f dev/docker-compose.yml up -d
+	@docker-compose -f dev/docker-compose.yml up --build -d
 	@echo ""
 	@echo "✅ Development environment started!"
 	@echo ""
