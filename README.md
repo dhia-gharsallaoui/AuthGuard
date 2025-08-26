@@ -36,56 +36,50 @@ proxy_set_header X-Auth-Providers "ip_whitelist";
 
 ## Quick Start
 
+### Using Docker Compose (Recommended)
+
+1. **Clone and start**:
+   ```bash
+   git clone <repository>
+   cd auth-nginx
+   make dev-up
+   ```
+
+2. **Configure Firebase** (optional):
+   ```bash
+   # Add your Firebase credentials to dev/.env
+   export AUTHGUARD_FIREBASE_CREDENTIALS_BASE64="<your-base64-credentials>"
+   ```
+
+3. **Test the service**:
+   ```bash
+   # Health check  
+   curl http://localhost:8080/health
+   
+   # IP whitelist authentication (works from localhost)
+   curl -v http://localhost/auth/ip-only
+   
+   # Firebase authentication (requires valid token)
+   curl -v http://localhost/auth/firebase \
+     -H "Authorization: Bearer YOUR_FIREBASE_TOKEN"
+     
+   # Multi-provider authentication (both must succeed)
+   curl -v http://localhost/auth/firebase-ip \
+     -H "Authorization: Bearer YOUR_FIREBASE_TOKEN"
+   ```
+
 ### Using Environment Variables
 
 1. **Set up environment**:
    ```bash
-   # Copy the example environment file
-   cp .env.example .env
-   
-   # Edit .env with your configuration
+   make setup-env    # Creates .env from template
+   # Edit .env with your Firebase credentials
    source .env
    ```
 
 2. **Run the service**:
    ```bash
-   go build -o authguard cmd/authguard/main.go
-   ./authguard
-   ```
-
-### Using Docker Compose
-
-1. **Clone and configure**:
-   ```bash
-   git clone <repository>
-   cd auth-nginx
-   cp .env.example .env
-   # Edit .env with your Firebase credentials
-   ```
-
-2. **Start services**:
-   ```bash
-   docker-compose up -d
-   ```
-
-3. **Test the service**:
-   ```bash
-   # Health check
-   curl http://localhost:8080/health
-   
-   # Firebase authentication
-   curl -X POST http://localhost:8080/validate \
-     -H "Authorization: Bearer YOUR_FIREBASE_TOKEN" \
-     -H "X-Auth-Providers: firebase"
-   
-   # IP whitelist authentication  
-   curl -X POST http://localhost:8080/validate \
-     -H "X-Auth-Providers: ip_whitelist"
-     
-   # Multi-provider authentication (both must succeed)
-   curl -X POST http://localhost:8080/validate \
-     -H "Authorization: Bearer YOUR_FIREBASE_TOKEN" \
-     -H "X-Auth-Providers: firebase,ip_whitelist"
+   make run-env      # Builds and runs with environment
    ```
 
 ## Configuration
@@ -110,6 +104,12 @@ AUTHGUARD_SERVER_HOST="0.0.0.0"
 
 # Provider Selection (comma-separated)
 AUTHGUARD_PROVIDERS="firebase,ip_whitelist"
+
+# Cache Configuration (Redis with memory fallback)
+AUTHGUARD_CACHE_TYPE="redis"                    # redis, memory, or auto-detect
+AUTHGUARD_REDIS_URL="redis://:password@localhost:6379"
+AUTHGUARD_REDIS_PASSWORD="your_redis_password"
+AUTHGUARD_REDIS_DB="0"
 
 # Logging
 AUTHGUARD_LOG_LEVEL="info"
@@ -277,12 +277,14 @@ Returns service health status including all providers.
     }
   },
   "cache": {
-    "type": "memory",
+    "type": "redis",
     "status": "healthy",
     "stats": {
       "hits": 1250,
       "misses": 45,
-      "keys": 150
+      "keys": 150,
+      "last_updated": "2025-08-26T10:32:11.456898399Z",
+      "type": "redis"
     }
   }
 }

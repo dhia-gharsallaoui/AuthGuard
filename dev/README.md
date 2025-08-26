@@ -92,17 +92,25 @@ make dev-up
 curl http://localhost/health
 curl http://localhost:8080/health  # Direct to AuthGuard
 
-# Test IP whitelist (should work from localhost)
-curl http://localhost/internal
+# Direct auth testing (new endpoints)
+curl -v http://localhost/auth/ip-only           # IP whitelist only
+curl -v http://localhost/auth/firebase \       # Firebase only
+  -H "Authorization: Bearer YOUR_TOKEN"
+curl -v http://localhost/auth/firebase-ip \    # Multi-provider
+  -H "Authorization: Bearer YOUR_TOKEN"
 
-# Test Firebase auth (replace TOKEN)
-curl -H "Authorization: Bearer TOKEN" http://localhost/protected
+# Protected endpoints through auth_request
+curl http://localhost/protected/internal       # IP whitelist protected
+curl -H "Authorization: Bearer TOKEN" \        # Firebase protected
+  http://localhost/protected/api
+curl -H "Authorization: Bearer TOKEN" \        # Multi-provider admin
+  http://localhost/protected/admin
 
-# Test multi-provider admin (replace TOKEN)  
-curl -H "Authorization: Bearer TOKEN" http://localhost/admin
-
-# View logs
-make dev-logs
+# Monitoring
+curl http://localhost:8080/metrics            # Prometheus metrics
+docker exec -it authguard-redis redis-cli    # Redis cache inspection
+docker logs -f authguard-app                 # AuthGuard logs
+docker logs -f authguard-nginx               # nginx logs
 
 # Stop environment
 make dev-down
@@ -143,8 +151,10 @@ make dev-down
 - Returns JSON responses with user info
 
 ### Redis (Port 6379)
-- Caching layer (optional)
-- Ready for production use
+- Authentication result caching
+- Provider-specific cache keys (firebase:*, ip_whitelist:*)
+- Configurable TTL based on token expiration
+- Memory fallback if Redis unavailable
 
 ## 🔍 Debugging
 
@@ -169,15 +179,27 @@ curl -I -H "X-Auth-Providers: ip_whitelist" http://localhost:8080/validate
 
 ### Test provider combinations:
 ```bash
-# Firebase only
-curl -H "X-Auth-Providers: firebase" \
-     -H "Authorization: Bearer TOKEN" \
-     http://localhost:8080/validate
+# Use convenient testing endpoints
+curl -v http://localhost/auth/firebase \
+     -H "Authorization: Bearer TOKEN"
 
-# Multi-provider  
-curl -H "X-Auth-Providers: firebase,ip_whitelist" \
-     -H "Authorization: Bearer TOKEN" \
-     http://localhost:8080/validate
+curl -v http://localhost/auth/ip-only
+
+curl -v http://localhost/auth/firebase-ip \
+     -H "Authorization: Bearer TOKEN"
+```
+
+### Inspect Redis cache:
+```bash
+# Connect to Redis
+docker exec -it authguard-redis redis-cli -a authguard_redis_password
+
+# View cache keys by provider
+keys firebase:*
+keys ip_whitelist:*
+
+# Check specific cached result
+get firebase:abc123def456
 ```
 
 ## 🚨 Troubleshooting
