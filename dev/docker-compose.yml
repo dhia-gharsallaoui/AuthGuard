@@ -26,10 +26,10 @@ services:
       # Firebase Configuration (auto-extracts project_id)
       - AUTHGUARD_FIREBASE_CREDENTIALS_BASE64=${AUTHGUARD_FIREBASE_CREDENTIALS_BASE64}
       
-      # IP Whitelist Configuration
-      - AUTHGUARD_IP_WHITELIST_ALLOWED_IPS=127.0.0.1,::1,172.0.0.0/8,nginx
+      # IP Whitelist Configuration  
+      - AUTHGUARD_IP_WHITELIST_ALLOWED_IPS=127.0.0.1,::1,172.0.0.0/8,10.0.0.0/8
       - AUTHGUARD_IP_WHITELIST_PROXY_HEADER=X-Real-IP
-      - AUTHGUARD_IP_WHITELIST_TRUSTED_PROXIES=172.0.0.0/8
+      - AUTHGUARD_IP_WHITELIST_TRUSTED_PROXIES=172.0.0.0/8,10.0.0.0/8
       
       # Server Configuration
       - AUTHGUARD_SERVER_PORT=8080
@@ -42,9 +42,17 @@ services:
       - AUTHGUARD_LOG_LEVEL=debug
       - AUTHGUARD_LOG_FORMAT=json
       
+      # Cache Configuration (Redis with memory fallback)
+      - AUTHGUARD_CACHE_TYPE=redis
+      - AUTHGUARD_REDIS_URL=redis://:authguard_redis_password@redis:6379
+      - AUTHGUARD_REDIS_PASSWORD=authguard_redis_password
+      - AUTHGUARD_REDIS_DB=0
+      
       # Metrics Configuration
       - AUTHGUARD_METRICS_ENABLED=true
       - AUTHGUARD_METRICS_PORT=9090
+    depends_on:
+      - redis
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
