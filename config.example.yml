@@ -1,0 +1,55 @@
+# AuthGuard Configuration Example
+# Copy this to config.yml and adjust for your environment
+
+# Server Configuration
+server:
+  port: "8080"
+  host: "0.0.0.0"
+  read_timeout: "10s"
+  write_timeout: "10s"
+  idle_timeout: "120s"
+  shutdown_timeout: "30s"
+  max_header_bytes: 1048576  # 1MB
+
+# Cache Configuration (Redis with memory fallback)
+cache:
+  type: "redis"  # Options: "redis", "memory"
+  redis_url: "redis://:authguard_redis_password@localhost:6379"
+  redis_password: "authguard_redis_password"
+  redis_db: 0
+  max_keys: 1000              # For memory cache
+  cleanup_interval: "10m"     # For memory cache
+  default_ttl: "1h"           # Default TTL for cached items
+
+# Authentication Providers (composable)
+providers:
+  - firebase
+  - ip_whitelist
+
+# Logging Configuration
+logging:
+  level: "info"      # Options: debug, info, warn, error
+  format: "json"     # Options: json, text
+
+# Metrics Configuration
+metrics:
+  enabled: true
+  port: "9090" 
+  path: "/metrics"
+
+# Provider Configuration (via environment variables)
+# 
+# Firebase Provider:
+# AUTHGUARD_FIREBASE_CREDENTIALS_BASE64="<base64-encoded-service-account-json>"
+# AUTHGUARD_FIREBASE_CREDENTIALS_PATH="/path/to/service-account.json"
+#
+# IP Whitelist Provider:  
+# AUTHGUARD_IP_WHITELIST_ALLOWED_IPS="127.0.0.1,::1,192.168.1.0/24"
+# AUTHGUARD_IP_WHITELIST_PROXY_HEADER="X-Real-IP"
+# AUTHGUARD_IP_WHITELIST_TRUSTED_PROXIES="10.0.0.0/8,172.16.0.0/12"
+#
+# Cache Configuration (override YAML):
+# AUTHGUARD_CACHE_TYPE="redis"
+# AUTHGUARD_REDIS_URL="redis://:password@localhost:6379"
+# AUTHGUARD_REDIS_PASSWORD="password"
+# AUTHGUARD_REDIS_DB="0"

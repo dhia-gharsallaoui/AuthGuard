@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuthGuard - Composable Authentication</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container { 
+            background: rgba(255,255,255,0.1); 
+            padding: 30px; 
+            border-radius: 15px; 
+            backdrop-filter: blur(10px);
+        }
+        h1 { color: #fff; margin-bottom: 10px; }
+        .subtitle { opacity: 0.9; margin-bottom: 30px; font-size: 1.1em; }
+        .section { 
+            background: rgba(255,255,255,0.05); 
+            padding: 20px; 
+            margin: 20px 0; 
+            border-radius: 10px; 
+            border-left: 4px solid #4CAF50;
+        }
+        .endpoint { 
+            background: rgba(255,255,255,0.1); 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 8px; 
+            border-left: 3px solid #2196F3;
+        }
+        .method { 
+            display: inline-block; 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-size: 0.8em; 
+            font-weight: bold; 
+            margin-right: 10px; 
+        }
+        .get { background: #4CAF50; }
+        .post { background: #FF9800; }
+        code { 
+            background: rgba(0,0,0,0.3); 
+            padding: 2px 6px; 
+            border-radius: 4px; 
+            font-family: 'Monaco', 'Consolas', monospace; 
+        }
+        .status { 
+            display: inline-block; 
+            padding: 4px 12px; 
+            border-radius: 12px; 
+            font-size: 0.9em; 
+            margin-left: 10px; 
+        }
+        .status.online { background: #4CAF50; }
+        .auth-info { 
+            background: rgba(255,193,7,0.2); 
+            border-left: 4px solid #FFC107; 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-radius: 8px; 
+        }
+        .feature { 
+            margin: 10px 0; 
+            padding: 10px 0; 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+        }
+        .feature:last-child { border-bottom: none; }
+        .badge { 
+            background: #FF4081; 
+            color: white; 
+            padding: 2px 8px; 
+            border-radius: 12px; 
+            font-size: 0.8em; 
+            margin-left: 8px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ AuthGuard</h1>
+        <div class="subtitle">Composable Authentication Service for nginx</div>
+
+        <div class="section">
+            <h3>🚀 Service Status</h3>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <code>/health</code>
+                <span class="status online">Online</span>
+                <div style="margin-top: 10px; opacity: 0.8;">Health check endpoint - returns system status</div>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <code>/metrics</code>
+                <span class="status online">Online</span>
+                <div style="margin-top: 10px; opacity: 0.8;">Prometheus metrics endpoint</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🔐 Authentication Endpoints</h3>
+            
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <code>/api/*</code>
+                <span class="badge">Firebase</span>
+                <div class="auth-info">
+                    <strong>Public API</strong> - Requires Firebase authentication<br>
+                    Add <code>Authorization: Bearer YOUR_FIREBASE_TOKEN</code> header
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <code>/protected</code>
+                <span class="badge">Firebase</span>
+                <div class="auth-info">
+                    <strong>Protected Resource</strong> - Requires Firebase authentication<br>
+                    Add <code>Authorization: Bearer YOUR_FIREBASE_TOKEN</code> header
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <code>/internal</code>
+                <span class="badge">IP Whitelist</span>
+                <div class="auth-info">
+                    <strong>Internal Service</strong> - Requires IP whitelist authentication<br>
+                    Access restricted to allowed IP addresses/networks
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <code>/admin</code>
+                <span class="badge">Multi-Provider</span>
+                <div class="auth-info">
+                    <strong>Admin Panel</strong> - Requires BOTH Firebase + IP whitelist<br>
+                    Must have valid Firebase token AND be from allowed IP address
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>✨ Features</h3>
+            <div class="feature">🔄 <strong>Composable Authentication</strong> - Chain multiple providers</div>
+            <div class="feature">🔥 <strong>Firebase Admin SDK</strong> - Full Firebase integration</div>
+            <div class="feature">🌐 <strong>IP Whitelist</strong> - Network-based authentication</div>
+            <div class="feature">⚡ <strong>High Performance</strong> - Sub-50ms response times</div>
+            <div class="feature">📦 <strong>nginx Integration</strong> - Seamless auth_request support</div>
+            <div class="feature">🏗️ <strong>Clean Architecture</strong> - Extensible provider system</div>
+        </div>
+
+        <div class="section">
+            <h3>🧪 Testing</h3>
+            <div style="font-family: monospace; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin: 10px 0;">
+# Test health endpoint<br>
+curl http://localhost/health<br><br>
+
+# Test IP whitelist (internal)<br>
+curl http://localhost/internal<br><br>
+
+# Test Firebase auth (replace TOKEN)<br>
+curl -H "Authorization: Bearer TOKEN" http://localhost/protected<br><br>
+
+# Test multi-provider admin<br>
+curl -H "Authorization: Bearer TOKEN" http://localhost/admin
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📊 Development URLs</h3>
+            <div class="endpoint">
+                <strong>nginx Proxy:</strong> <code>http://localhost</code>
+            </div>
+            <div class="endpoint">
+                <strong>AuthGuard Direct:</strong> <code>http://localhost:8080</code>
+            </div>
+            <div class="endpoint">
+                <strong>Metrics:</strong> <code>http://localhost:9090/metrics</code>
+            </div>
+            <div class="endpoint">
+                <strong>Redis:</strong> <code>localhost:6379</code>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # nginx proxy with auth_request module
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./html:/usr/share/nginx/html:ro
+    depends_on:
+      - authguard
+    networks:
+      - authguard-net
+
+  # AuthGuard authentication service
+  authguard:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"  # Direct access for testing
+      - "9090:9090"  # Metrics
+    environment:
+      # Firebase Configuration (auto-extracts project_id)
+      - AUTHGUARD_FIREBASE_CREDENTIALS_BASE64=${AUTHGUARD_FIREBASE_CREDENTIALS_BASE64}
+      
+      # IP Whitelist Configuration
+      - AUTHGUARD_IP_WHITELIST_ALLOWED_IPS=127.0.0.1,::1,172.0.0.0/8,nginx
+      - AUTHGUARD_IP_WHITELIST_PROXY_HEADER=X-Real-IP
+      - AUTHGUARD_IP_WHITELIST_TRUSTED_PROXIES=172.0.0.0/8
+      
+      # Server Configuration
+      - AUTHGUARD_SERVER_PORT=8080
+      - AUTHGUARD_SERVER_HOST=0.0.0.0
+      
+      # Provider Configuration (both providers enabled)
+      - AUTHGUARD_PROVIDERS=firebase,ip_whitelist
+      
+      # Logging Configuration
+      - AUTHGUARD_LOG_LEVEL=debug
+      - AUTHGUARD_LOG_FORMAT=json
+      
+      # Metrics Configuration
+      - AUTHGUARD_METRICS_ENABLED=true
+      - AUTHGUARD_METRICS_PORT=9090
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - authguard-net
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass authguard_redis_password
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - authguard-net
+    volumes:
+      - redis-data:/data
+
+  # Sample backend service to demonstrate auth forwarding
+  backend:
+    image: nginx:alpine
+    volumes:
+      - ./backend.conf:/etc/nginx/nginx.conf:ro
+      - ./backend-html:/usr/share/nginx/html:ro
+    networks:
+      - authguard-net
+
+networks:
+  authguard-net:
+    driver: bridge
+
+volumes:
+  redis-data:
