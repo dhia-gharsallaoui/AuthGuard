@@ -7,7 +7,7 @@ A lightweight, high-performance authentication service designed for nginx's `aut
 - **🔄 Composable Authentication**: Chain multiple authentication providers for complex security requirements
 - **🔥 Firebase Admin SDK**: Full Firebase authentication with automatic project ID detection  
 - **🌐 IP Whitelist**: Network-based authentication for internal services
-- **⚡ High Performance**: In-memory and Redis caching with sub-50ms response times
+- **⚡ Caching**: In-memory and Redis caching for optimal performance
 - **🚀 Production Ready**: Comprehensive logging, metrics, health checks, and graceful shutdown
 - **📦 nginx Integration**: Optimized for nginx `auth_request` module with header-based provider selection
 - **🐳 Docker Support**: Complete containerization with docker-compose setup
@@ -17,7 +17,7 @@ A lightweight, high-performance authentication service designed for nginx's `aut
 
 - ✅ **Firebase**: JWT token validation using Firebase Admin SDK
 - ✅ **IP Whitelist**: Network-based authentication with CIDR support  
-- 🔄 **Planned**: Auth0, Keycloak, OAuth2, SAML, LDAP
+- 🔄 **Extensible**: Add new providers like Auth0, Keycloak, OAuth2, SAML, LDAP and use them in chaining authentication
 
 ## Composable Authentication
 
@@ -370,13 +370,20 @@ This allows providers to access different authentication sources:
 - **Future LDAP**: Could use `Authorization` header for Basic Auth
 - **Future Cookie Auth**: Could read session cookies
 
-## Performance
+## Contributing New Providers
 
-- **Response Time**: 95th percentile under 50ms for cached tokens
-- **Throughput**: 1000+ requests/second on standard hardware
-- **Memory Usage**: Configurable limits, default max for cache
-- **Concurrent Requests**: Supports 100+ concurrent validations
-- **Multi-Provider**: Minimal overhead for provider chaining
+AuthGuard is designed to be **composable and extensible**. You can easily contribute new authentication providers and use them in chaining authentication scenarios. Examples of providers you could add:
+
+- **Auth0**: OAuth2/OpenID Connect integration
+- **Keycloak**: Open source identity management  
+- **OAuth2 Generic**: Generic OAuth2 provider support
+- **SAML**: SAML 2.0 authentication
+- **LDAP/AD**: Directory-based authentication
+- **API Key**: Simple API key validation
+- **JWT Generic**: Generic JWT token validation
+- **Basic Auth**: Username/password authentication
+
+All providers can be chained together using the `X-Auth-Providers` header, allowing complex authentication flows like "firebase,ldap" or "api_key,ip_whitelist".
 
 ## Security
 

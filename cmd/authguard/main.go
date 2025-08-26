@@ -65,7 +65,7 @@ func main() {
 	authGuard := auth.NewAuthGuard(mainConfig, providerConfigLoader, cacheInstance, metrics, logger)
 
 	// Register providers based on configuration
-	if err := registerProviders(authGuard, mainConfig, cacheInstance, logger, metrics); err != nil {
+	if err := registerProviders(authGuard, mainConfig, cacheInstance, authGuard.LockManager(), logger, metrics); err != nil {
 		logger.Error("failed to register providers", "error", err)
 		os.Exit(1)
 	}
@@ -134,16 +134,16 @@ func main() {
 }
 
 // registerProviders registers authentication providers based on configuration
-func registerProviders(authGuard *auth.AuthGuard, config *auth.Config, cache auth.Cache, logger auth.Logger, metrics auth.Metrics) error {
+func registerProviders(authGuard *auth.AuthGuard, config *auth.Config, cache auth.Cache, lockManager auth.LockManager, logger auth.Logger, metrics auth.Metrics) error {
 	for _, providerType := range config.Providers {
 		switch providerType {
 		case auth.ProviderTypeFirebase:
-			provider := firebase.NewProvider(cache, logger, metrics)
+			provider := firebase.NewProvider(cache, lockManager, logger, metrics)
 			if err := authGuard.RegisterProvider(provider); err != nil {
 				return fmt.Errorf("failed to register firebase provider: %w", err)
 			}
 		case auth.ProviderTypeIPWhitelist:
-			provider := ipwhitelist.NewProvider(logger, metrics)
+			provider := ipwhitelist.NewProvider(cache, lockManager, logger, metrics)
 			if err := authGuard.RegisterProvider(provider); err != nil {
 				return fmt.Errorf("failed to register ip_whitelist provider: %w", err)
 			}

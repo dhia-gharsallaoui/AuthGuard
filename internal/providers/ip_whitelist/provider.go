@@ -13,16 +13,20 @@ import (
 
 // Provider implements IP whitelist authentication
 type Provider struct {
-	config  *Config
-	logger  auth.Logger
-	metrics auth.Metrics
+	config      *Config
+	logger      auth.Logger
+	metrics     auth.Metrics
+	cache       auth.Cache
+	lockManager auth.LockManager
 }
 
 // NewProvider creates a new IP whitelist authentication provider
-func NewProvider(logger auth.Logger, metrics auth.Metrics) *Provider {
+func NewProvider(cache auth.Cache, lockManager auth.LockManager, logger auth.Logger, metrics auth.Metrics) *Provider {
 	return &Provider{
-		logger:  logger.With("provider", "ip_whitelist"),
-		metrics: metrics,
+		logger:      logger.With("provider", "ip_whitelist"),
+		metrics:     metrics,
+		cache:       cache,
+		lockManager: lockManager,
 	}
 }
 
@@ -81,7 +85,7 @@ func (p *Provider) LoadConfig(loader auth.ConfigLoader) error {
 	return nil
 }
 
-// Validate validates IP whitelist authentication from AuthContext
+// Validate validates IP whitelist authentication from AuthContext  
 func (p *Provider) Validate(ctx context.Context, authCtx *auth.AuthContext) (*auth.UserClaims, error) {
 	start := time.Now()
 	defer func() {
@@ -89,6 +93,14 @@ func (p *Provider) Validate(ctx context.Context, authCtx *auth.AuthContext) (*au
 	}()
 
 	p.metrics.IncProviderRequests("ip_whitelist")
+
+	// Note: IP whitelist provider doesn't use caching because:
+	// - IP validation is extremely fast (just network checks)
+	// - IP addresses can change frequently
+	// - No expensive external API calls to cache
+	// If needed, caching could be implemented like:
+	// cacheKey := "ip_whitelist:" + clientIP
+	// p.cache.Get/Set with short TTL
 
 	// Get client IP
 	clientIP, err := p.getClientIP(authCtx)

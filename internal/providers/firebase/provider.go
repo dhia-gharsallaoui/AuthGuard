@@ -2,8 +2,11 @@ package firebase
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -16,18 +19,22 @@ import (
 
 // Provider implements the AuthProvider interface for Firebase using Admin SDK
 type Provider struct {
-	config     *Config
-	authClient *firebaseAuth.Client
-	app        *firebase.App
-	logger     auth.Logger
-	metrics    auth.Metrics
+	config      *Config
+	authClient  *firebaseAuth.Client
+	app         *firebase.App
+	logger      auth.Logger
+	metrics     auth.Metrics
+	cache       auth.Cache
+	lockManager auth.LockManager
 }
 
 // NewProvider creates a new Firebase authentication provider
-func NewProvider(cache auth.Cache, logger auth.Logger, metrics auth.Metrics) *Provider {
+func NewProvider(cache auth.Cache, lockManager auth.LockManager, logger auth.Logger, metrics auth.Metrics) *Provider {
 	return &Provider{
-		logger:  logger.With("provider", "firebase"),
-		metrics: metrics,
+		logger:      logger.With("provider", "firebase"),
+		metrics:     metrics,
+		cache:       cache,
+		lockManager: lockManager,
 	}
 }
 
@@ -156,6 +163,19 @@ func (p *Provider) Validate(ctx context.Context, authCtx *auth.AuthContext) (*au
 		return nil, auth.ErrInvalidToken
 	}
 
+	// Generate cache key for this token
+	cacheKey := p.generateCacheKey(tokenString)
+	
+	// Use lock to prevent concurrent validation of the same token
+	p.lockManager.Lock(cacheKey)
+	defer p.lockManager.Unlock(cacheKey)
+	
+	// Check cache first
+	if cachedClaims := p.getCachedClaims(ctx, cacheKey); cachedClaims != nil {
+		p.logger.Debug("cache hit for token validation", "subject", cachedClaims.Subject)
+		return cachedClaims, nil
+	}
+
 	// Verify the token using Firebase Admin SDK
 	token, err := p.authClient.VerifyIDToken(ctx, tokenString)
 	if err != nil {
@@ -169,8 +189,70 @@ func (p *Provider) Validate(ctx context.Context, authCtx *auth.AuthContext) (*au
 		return nil, auth.ErrInvalidToken
 	}
 
-	p.logger.Debug("token validated successfully", "subject", userClaims.Subject)
+	// Cache the successful result
+	p.setCachedClaims(ctx, cacheKey, userClaims)
+	p.logger.Debug("token validated successfully and cached", "subject", userClaims.Subject)
 	return userClaims, nil
+}
+
+// generateCacheKey creates a cache key for Firebase tokens using format "firebase:token_hash"
+func (p *Provider) generateCacheKey(tokenString string) string {
+	hasher := sha256.New()
+	hasher.Write([]byte(tokenString))
+	return "firebase:" + hex.EncodeToString(hasher.Sum(nil))[:16] // Use first 16 chars for shorter keys
+}
+
+// getCachedClaims retrieves cached claims if available and valid
+func (p *Provider) getCachedClaims(ctx context.Context, cacheKey string) *auth.UserClaims {
+	data, err := p.cache.Get(ctx, cacheKey)
+	if err != nil {
+		if !errors.Is(err, auth.ErrCacheKeyNotFound) {
+			p.logger.Debug("cache get error", "key", cacheKey, "error", err)
+		}
+		return nil
+	}
+
+	var claims auth.UserClaims
+	if err := json.Unmarshal(data, &claims); err != nil {
+		p.logger.Debug("cache unmarshal error", "key", cacheKey, "error", err)
+		return nil
+	}
+
+	// Check if claims are expired
+	if !claims.ExpiresAt.IsZero() && time.Now().After(claims.ExpiresAt) {
+		p.logger.Debug("cached claims expired", "key", cacheKey, "expires_at", claims.ExpiresAt)
+		// Delete expired entry async
+		go func() {
+			_ = p.cache.Delete(context.Background(), cacheKey)
+		}()
+		return nil
+	}
+
+	return &claims
+}
+
+// setCachedClaims stores authentication claims in cache with appropriate TTL
+func (p *Provider) setCachedClaims(ctx context.Context, cacheKey string, claims *auth.UserClaims) {
+	data, err := json.Marshal(claims)
+	if err != nil {
+		p.logger.Debug("cache marshal error", "key", cacheKey, "error", err)
+		return
+	}
+
+	// Calculate TTL based on token expiration (Firebase tokens usually expire in 1 hour)
+	ttl := time.Hour // Default Firebase ID token TTL
+	if !claims.ExpiresAt.IsZero() {
+		tokenTTL := time.Until(claims.ExpiresAt)
+		if tokenTTL > 0 && tokenTTL < ttl {
+			ttl = tokenTTL
+		}
+	}
+
+	if err := p.cache.Set(ctx, cacheKey, data, ttl); err != nil {
+		p.logger.Debug("cache set error", "key", cacheKey, "error", err)
+	} else {
+		p.logger.Debug("cached token validation result", "key", cacheKey, "ttl", ttl)
+	}
 }
 
 // mapFirebaseError maps Firebase SDK errors to our auth errors

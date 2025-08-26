@@ -7,6 +7,8 @@ import (
 	"io"
 	"strings"
 	"time"
+
+	"authguard/pkg/concurrency"
 )
 
 // ProviderType represents authentication provider types
@@ -83,6 +85,15 @@ func (ac *AuthContext) ReadBody() ([]byte, error) {
 	return io.ReadAll(ac.Body)
 }
 
+// LockManager defines the interface for concurrency control
+type LockManager interface {
+	// Lock acquires a lock for the given key
+	Lock(key string)
+	
+	// Unlock releases the lock for the given key
+	Unlock(key string)
+}
+
 // AuthProvider defines the interface for authentication providers
 type AuthProvider interface {
 	// Type returns the provider type
@@ -92,6 +103,8 @@ type AuthProvider interface {
 	LoadConfig(loader ConfigLoader) error
 
 	// Validate validates authentication context and returns user claims
+	// Providers should implement their own caching logic using the injected cache
+	// Cache keys should use format: "providername:key" for easy identification
 	Validate(ctx context.Context, authCtx *AuthContext) (*UserClaims, error)
 
 	// Health checks the provider's health status
@@ -124,6 +137,7 @@ type AuthGuard struct {
 	configLoader ConfigLoader
 	metrics      Metrics
 	logger       Logger
+	lockManager  LockManager
 }
 
 // NewAuthGuard creates a new AuthGuard instance
@@ -135,6 +149,7 @@ func NewAuthGuard(config *Config, configLoader ConfigLoader, cache Cache, metric
 		configLoader: configLoader,
 		metrics:      metrics,
 		logger:       logger,
+		lockManager:  concurrency.NewMutexManager(),
 	}
 }
 
@@ -148,6 +163,11 @@ func (ag *AuthGuard) RegisterProvider(provider AuthProvider) error {
 	ag.providers[provider.Type()] = provider
 	ag.logger.Info("registered auth provider", "provider", provider.Type().String())
 	return nil
+}
+
+// LockManager returns the lock manager instance
+func (ag *AuthGuard) LockManager() LockManager {
+	return ag.lockManager
 }
 
 // ValidateAuth validates authentication using the specified provider
