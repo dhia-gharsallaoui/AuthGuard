@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -49,25 +50,25 @@ func NewLogger(config auth.LoggingConfig) (auth.Logger, error) {
 // Debug logs a debug message
 func (l *Logger) Debug(msg string, keysAndValues ...any) {
 	attrs := l.parseKeyValues(keysAndValues...)
-	l.slogger.LogAttrs(nil, slog.LevelDebug, msg, append(l.attrs, attrs...)...)
+	l.slogger.LogAttrs(context.TODO(), slog.LevelDebug, msg, append(l.attrs, attrs...)...)
 }
 
 // Info logs an info message
 func (l *Logger) Info(msg string, keysAndValues ...any) {
 	attrs := l.parseKeyValues(keysAndValues...)
-	l.slogger.LogAttrs(nil, slog.LevelInfo, msg, append(l.attrs, attrs...)...)
+	l.slogger.LogAttrs(context.TODO(), slog.LevelInfo, msg, append(l.attrs, attrs...)...)
 }
 
 // Warn logs a warning message
 func (l *Logger) Warn(msg string, keysAndValues ...any) {
 	attrs := l.parseKeyValues(keysAndValues...)
-	l.slogger.LogAttrs(nil, slog.LevelWarn, msg, append(l.attrs, attrs...)...)
+	l.slogger.LogAttrs(context.TODO(), slog.LevelWarn, msg, append(l.attrs, attrs...)...)
 }
 
 // Error logs an error message
 func (l *Logger) Error(msg string, keysAndValues ...any) {
 	attrs := l.parseKeyValues(keysAndValues...)
-	l.slogger.LogAttrs(nil, slog.LevelError, msg, append(l.attrs, attrs...)...)
+	l.slogger.LogAttrs(context.TODO(), slog.LevelError, msg, append(l.attrs, attrs...)...)
 }
 
 // With returns a new logger with additional fields

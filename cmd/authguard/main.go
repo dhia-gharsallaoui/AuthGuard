@@ -72,7 +72,11 @@ func main() {
 		logger.Error("failed to create cache", "error", err)
 		os.Exit(1)
 	}
-	defer cacheInstance.Close()
+	defer func() {
+		if err := cacheInstance.Close(); err != nil {
+			logger.Error("failed to close cache", "error", err)
+		}
+	}()
 
 	// Initialize AuthGuard
 	authGuard := auth.NewAuthGuard(mainConfig, providerConfigLoader, cacheInstance, metrics, logger)

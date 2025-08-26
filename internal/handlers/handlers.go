@@ -237,7 +237,9 @@ func (h *Handlers) writeError(w http.ResponseWriter, httpErr *auth.HTTPError, st
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
-	json.NewEncoder(w).Encode(httpErr)
+	if err := json.NewEncoder(w).Encode(httpErr); err != nil {
+		h.logger.Warn("failed to encode error response", "error", err)
+	}
 
 	h.logger.Debug("authentication error",
 		"code", httpErr.Code,
