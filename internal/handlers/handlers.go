@@ -33,6 +33,11 @@ func (h HealthStatus) String() string {
 	}
 }
 
+// MarshalJSON implements json.Marshaler interface
+func (h HealthStatus) MarshalJSON() ([]byte, error) {
+	return json.Marshal(h.String())
+}
+
 // Handlers contains all HTTP handlers with shared dependencies
 type Handlers struct {
 	authGuard *auth.AuthGuard

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -35,6 +36,11 @@ func ParseCacheType(s string) CacheType {
 	default:
 		return CacheTypeMemory
 	}
+}
+
+// MarshalJSON implements json.Marshaler interface
+func (c CacheType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.String())
 }
 
 // Cache defines the interface for key-value storage with TTL support
