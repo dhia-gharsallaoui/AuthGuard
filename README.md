@@ -36,12 +36,22 @@ proxy_set_header X-Auth-Providers "ip_whitelist";
 
 ## Quick Start
 
-### Using Docker Compose (Recommended)
+### Using Docker Image
+
+```bash
+# Run with Docker (latest stable release)
+docker run -p 8080:8080 dhiagharsallaoui/authguard:latest
+
+# Or specific version
+docker run -p 8080:8080 dhiagharsallaoui/authguard:v1.0.0
+```
+
+### Using Docker Compose (Development)
 
 1. **Clone and start**:
    ```bash
-   git clone <repository>
-   cd auth-nginx
+   git clone https://github.com/dhia-gharsallaoui/AuthGuard.git
+   cd AuthGuard
    make dev-up
    ```
 
@@ -81,6 +91,40 @@ proxy_set_header X-Auth-Providers "ip_whitelist";
    ```bash
    make run-env      # Builds and runs with environment
    ```
+
+## Installation
+
+### Docker Images
+
+AuthGuard images are automatically built and published to Docker Hub:
+
+```bash
+# Latest stable release
+docker pull dhiagharsallaoui/authguard:latest
+
+# Specific version
+docker pull dhiagharsallaoui/authguard:v1.0.0
+```
+
+**Available Tags:**
+- `latest` - Latest stable release
+- `v1.0.0`, `v1.1.0` - Specific versions  
+- `main-<commit>` - Development builds from main branch
+
+**Platforms:** `linux/amd64`, `linux/arm64`
+
+### Binary Releases
+
+Download pre-built binaries from [GitHub Releases](https://github.com/dhia-gharsallaoui/AuthGuard/releases):
+
+```bash
+# Linux
+curl -L -o authguard https://github.com/dhia-gharsallaoui/AuthGuard/releases/latest/download/authguard-linux-amd64
+chmod +x authguard
+
+# Check version
+./authguard --version
+```
 
 ## Configuration
 

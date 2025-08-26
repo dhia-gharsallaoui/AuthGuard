@@ -18,12 +18,25 @@ import (
 	ipwhitelist "authguard/internal/providers/ip_whitelist"
 )
 
+// Build information (set via ldflags)
+var (
+	version = "dev"
+	commit  = "unknown"
+)
+
 func main() {
 	var (
-		configFile = flag.String("config", "", "Path to configuration file")
-		envPrefix  = flag.String("env-prefix", "AUTHGUARD", "Environment variable prefix")
+		configFile  = flag.String("config", "", "Path to configuration file")
+		envPrefix   = flag.String("env-prefix", "AUTHGUARD", "Environment variable prefix")
+		showVersion = flag.Bool("version", false, "Show version information")
 	)
 	flag.Parse()
+
+	// Show version and exit if requested
+	if *showVersion {
+		fmt.Printf("AuthGuard %s (commit: %s)\n", version, commit)
+		os.Exit(0)
+	}
 
 	// Load main configuration
 	configLoader := config.NewLoader(*configFile, *envPrefix)
@@ -44,7 +57,7 @@ func main() {
 	}
 	defer logger.Info("shutting down")
 
-	logger.Info("starting AuthGuard", "version", "0.1.0")
+	logger.Info("starting AuthGuard", "version", version, "commit", commit)
 
 	// Initialize metrics
 	metrics, err := metrics.NewMetrics(mainConfig.Metrics)

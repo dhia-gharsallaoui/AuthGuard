@@ -16,8 +16,15 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o authguard ./cmd/authguard
+# Build arguments for version info
+ARG VERSION=dev
+ARG COMMIT=unknown
+
+# Build the binary with version info
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -a -installsuffix cgo \
+    -ldflags="-X main.version=${VERSION} -X main.commit=${COMMIT}" \
+    -o authguard ./cmd/authguard
 
 # Production stage
 FROM alpine:latest
