@@ -552,4 +552,39 @@ All providers can be chained together using the `X-Auth-Providers` header, allow
 
 ## Contributing
 
-[Add contributing guidelines here]
+We welcome contributions! AuthGuard is designed to be **composable and extensible** - you can easily add new authentication providers, improve existing ones, or enhance the core system.
+
+### Quick Start for Contributors
+
+1. **Read the [CONTRIBUTING.md](CONTRIBUTING.md)** - Complete development setup and provider creation guide
+2. **Join the discussion** - Open an issue or start a discussion for new ideas
+3. **Start coding** - Fork the repo and create your feature branch
+
+### Creating New Auth Providers
+
+AuthGuard makes it easy to add new authentication methods:
+
+- **Step-by-step guide** in [CONTRIBUTING.md](CONTRIBUTING.md) with complete JWT provider example
+- **Clean interfaces** - Implement `AuthProvider` interface with 5 methods
+- **Composable design** - Your provider works with all existing providers
+- **Full examples** - Real code, not just documentation
+
+Example providers you could add:
+- **Auth0** - OAuth2/OpenID Connect
+- **LDAP/AD** - Directory authentication  
+- **API Keys** - Simple API key validation
+- **OAuth2** - Generic OAuth2 support
+- **SAML** - Enterprise SSO
+- **Basic Auth** - Username/password
+
+### Development Setup
+
+```bash
+git clone https://github.com/dhia-gharsallaoui/AuthGuard.git
+cd AuthGuard
+make dev-up     # Start Redis
+make setup-env  # Create .env
+make run-env    # Build and run
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed setup instructions, testing guidelines, and code examples.
