@@ -5,13 +5,42 @@ A lightweight, high-performance authentication service designed for nginx's `aut
 ## Features
 
 - **🔄 Composable Authentication**: Chain multiple authentication providers for complex security requirements
-- **🔥 Firebase Admin SDK**: Full Firebase authentication with automatic project ID detection  
-- **🌐 IP Whitelist**: Network-based authentication for internal services
+- **🧩 Pluggable Auth Providers**: Modular architecture supporting multiple authentication mechanisms
 - **⚡ Caching**: In-memory and Redis caching for optimal performance
 - **🚀 Production Ready**: Comprehensive logging, metrics, health checks, and graceful shutdown
 - **📦 nginx Integration**: Optimized for nginx `auth_request` module with header-based provider selection
 - **🐳 Docker Support**: Complete containerization with docker-compose setup
 - **🏗️ Clean Architecture**: Dependency injection, interfaces, and testable code
+
+## Composable Auth Providers
+
+AuthGuard's core strength is its **composable authentication architecture**. The system allows you to:
+
+- **Chain Multiple Providers**: Combine different authentication methods (`firebase,ip_whitelist`) where ALL must succeed
+- **Per-Route Configuration**: Different authentication requirements per nginx location
+- **Extensible Design**: Easily add new providers (Auth0, LDAP, API Keys, etc.)
+- **Runtime Selection**: Choose providers via `X-Auth-Providers` header
+
+### Available Providers
+
+| Provider | Type | Description | Use Case |
+|----------|------|-------------|----------|
+| **firebase** | JWT | Firebase Admin SDK validation | User authentication with JWTs |
+| **ip_whitelist** | Network | CIDR-based IP filtering | Internal services, admin access |
+| **[extensible]** | Any | Add your own providers | OAuth2, LDAP, API Keys, etc. |
+
+### Provider Composition Examples
+
+```nginx
+# Single provider (default)
+proxy_set_header X-Auth-Providers "firebase";
+
+# Multi-provider (ALL must pass)
+proxy_set_header X-Auth-Providers "firebase,ip_whitelist";
+
+# Network-only authentication
+proxy_set_header X-Auth-Providers "ip_whitelist";
+```
 
 ## Architecture
 
