@@ -3,6 +3,7 @@ version: '3.8'
 services:
   # nginx proxy with auth_request module
   nginx:
+    container_name: authguard-nginx
     image: nginx:alpine
     ports:
       - "80:80"
@@ -10,12 +11,14 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./html:/usr/share/nginx/html:ro
     depends_on:
-      - authguard
+      authguard:
+        condition: service_healthy
     networks:
       - authguard-net
 
   # AuthGuard authentication service
   authguard:
+    container_name: authguard-app
     build:
       context: ..
       dockerfile: Dockerfile
@@ -64,6 +67,7 @@ services:
 
   # Redis for caching (optional)
   redis:
+    container_name: authguard-redis
     image: redis:7-alpine
     ports:
       - "6379:6379"
@@ -80,6 +84,7 @@ services:
 
   # Sample backend service to demonstrate auth forwarding
   backend:
+    container_name: authguard-backend
     image: nginx:alpine
     volumes:
       - ./backend.conf:/etc/nginx/nginx.conf:ro
