@@ -13,6 +13,72 @@ A lightweight, high-performance authentication service designed for nginx's `aut
 - **🐳 Docker Support**: Complete containerization with docker-compose setup
 - **🏗️ Clean Architecture**: Dependency injection, interfaces, and testable code
 
+## Architecture
+
+AuthGuard acts as an authentication microservice that integrates with nginx's `auth_request` module. Here's how it works:
+
+```mermaid
+graph TD
+    A[Client Request] --> B[nginx]
+    B --> C{Protected Route?}
+    C -->|Yes| D[auth_request /auth]
+    C -->|No| E[Direct to Backend]
+    
+    D --> F[AuthGuard Service]
+    F --> G{Provider Selection}
+    
+    G --> H[Firebase Provider]
+    G --> I[IP Whitelist Provider]
+    G --> J[Future Providers...]
+    
+    H --> K{JWT Valid?}
+    K -->|Yes| L[Extract User Claims]
+    K -->|No| M[401 Unauthorized]
+    
+    I --> N{IP Allowed?}
+    N -->|Yes| O[Extract IP Info]
+    N -->|No| M
+    
+    L --> P[Cache Result]
+    O --> P
+    P --> Q[200 OK + Headers]
+    
+    Q --> R[nginx receives auth response]
+    R --> S{Auth Success?}
+    S -->|Yes| T[Forward to Backend]
+    S -->|No| U[Return 401 to Client]
+    
+    T --> V[Backend Service]
+    V --> W[Response to Client]
+    U --> A
+    W --> A
+    
+    style F fill:#e1f5fe
+    style H fill:#f3e5f5
+    style I fill:#f3e5f5
+    style J fill:#f3e5f5
+    style P fill:#fff3e0
+```
+
+### How It Works
+
+1. **Client Request**: Client makes request to nginx
+2. **nginx Routing**: nginx checks if route requires authentication
+3. **auth_request**: For protected routes, nginx calls AuthGuard via `auth_request`
+4. **Provider Selection**: AuthGuard uses `X-Auth-Providers` header to determine which providers to use
+5. **Authentication**: Each provider validates the request (JWT tokens, IP addresses, etc.)
+6. **Caching**: Results are cached (Redis/Memory) for performance
+7. **Response**: AuthGuard returns 200 (authorized) or 401 (unauthorized) with user headers
+8. **nginx Decision**: nginx forwards request to backend or returns error based on auth response
+
+### Key Benefits
+
+- **Composable**: Chain multiple providers (`firebase,ip_whitelist`)
+- **Performant**: Built-in caching reduces auth overhead
+- **Scalable**: Stateless design allows horizontal scaling
+- **Secure**: No auth logic in your application code
+- **Flexible**: Different auth requirements per route
+
 ## Supported Providers
 
 - ✅ **Firebase**: JWT token validation using Firebase Admin SDK
