@@ -165,11 +165,11 @@ func (p *Provider) Validate(ctx context.Context, authCtx *auth.AuthContext) (*au
 
 	// Generate cache key for this token
 	cacheKey := p.generateCacheKey(tokenString)
-	
+
 	// Use lock to prevent concurrent validation of the same token
 	p.lockManager.Lock(cacheKey)
 	defer p.lockManager.Unlock(cacheKey)
-	
+
 	// Check cache first
 	if cachedClaims := p.getCachedClaims(ctx, cacheKey); cachedClaims != nil {
 		p.logger.Debug("cache hit for token validation", "subject", cachedClaims.Subject)
