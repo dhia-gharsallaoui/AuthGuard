@@ -85,7 +85,7 @@ func (p *Provider) LoadConfig(loader auth.ConfigLoader) error {
 	return nil
 }
 
-// Validate validates IP whitelist authentication from AuthContext  
+// Validate validates IP whitelist authentication from AuthContext
 func (p *Provider) Validate(ctx context.Context, authCtx *auth.AuthContext) (*auth.UserClaims, error) {
 	start := time.Now()
 	defer func() {

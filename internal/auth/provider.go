@@ -89,7 +89,7 @@ func (ac *AuthContext) ReadBody() ([]byte, error) {
 type LockManager interface {
 	// Lock acquires a lock for the given key
 	Lock(key string)
-	
+
 	// Unlock releases the lock for the given key
 	Unlock(key string)
 }
