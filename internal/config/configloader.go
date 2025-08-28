@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -172,7 +173,9 @@ func (e *EnvConfigLoader) getFromYAML(key string) string {
 					return strValue
 				}
 				// Try to convert other types to string
-				return strings.TrimSpace(string(rune(value.(int))))
+				if intValue, ok := value.(int); ok {
+					return fmt.Sprintf("%d", intValue)
+				}
 			}
 			return ""
 		}
@@ -184,7 +187,7 @@ func (e *EnvConfigLoader) getFromYAML(key string) string {
 			return ""
 		}
 	}
-
+	// This should never be reached, but required by Go
 	return ""
 }
 

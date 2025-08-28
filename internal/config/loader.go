@@ -41,9 +41,7 @@ func (l *Loader) Load() (*auth.Config, error) {
 	l.applyDefaults(config)
 
 	// Apply environment variable overrides
-	if err := l.applyEnvOverrides(config); err != nil {
-		return nil, fmt.Errorf("failed to apply environment overrides: %w", err)
-	}
+	l.applyEnvOverrides(config)
 
 	// Validate configuration
 	if err := config.Validate(); err != nil {
@@ -104,8 +102,11 @@ func (l *Loader) applyDefaults(config *auth.Config) {
 		config.Logging.Format = "json"
 	}
 
-	// Metrics defaults
-	config.Metrics.Enabled = true // Default to enabled
+	// Metrics defaults - need to handle boolean default properly
+	// If neither Path nor Port is set, assume no metrics config was provided, so set default enabled
+	if config.Metrics.Path == "" && config.Metrics.Port == "" {
+		config.Metrics.Enabled = true
+	}
 	if config.Metrics.Path == "" {
 		config.Metrics.Path = "/metrics"
 	}
@@ -134,7 +135,7 @@ func (l *Loader) applyDefaults(config *auth.Config) {
 }
 
 // applyEnvOverrides applies environment variable overrides to configuration
-func (l *Loader) applyEnvOverrides(config *auth.Config) error {
+func (l *Loader) applyEnvOverrides(config *auth.Config) {
 	// Server overrides
 	if port := os.Getenv(l.envPrefix + "_SERVER_PORT"); port != "" {
 		config.Server.Port = port
@@ -195,6 +196,4 @@ func (l *Loader) applyEnvOverrides(config *auth.Config) error {
 			config.Cache.RedisDB = db
 		}
 	}
-
-	return nil
 }
