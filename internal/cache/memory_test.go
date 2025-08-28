@@ -431,3 +431,126 @@ func TestMemoryCache_EdgeCases(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Nil(t, value)
 }
+
+// Test for the race condition handling in Get method
+func TestMemoryCache_GetExpiredRaceCondition(t *testing.T) {
+	config := MemoryCacheConfig{
+		MaxKeys:         10,
+		CleanupInterval: 1 * time.Hour, // Long interval to avoid interference
+	}
+	cache, err := NewMemoryCache(config)
+	assert.NoError(t, err)
+	defer func() { _ = cache.Close() }()
+
+	ctx := context.Background()
+	key := "race-key"
+	value := []byte("race-value")
+
+	// Set with very short TTL
+	err = cache.Set(ctx, key, value, 1*time.Millisecond)
+	assert.NoError(t, err)
+
+	// Wait for expiration
+	time.Sleep(10 * time.Millisecond)
+
+	// Get should handle expired key properly and clean it up
+	retrieved, err := cache.Get(ctx, key)
+	assert.Error(t, err)
+	assert.Equal(t, auth.ErrCacheKeyNotFound, err)
+	assert.Nil(t, retrieved)
+
+	// Stats should show increased misses
+	stats := cache.Stats()
+	assert.True(t, stats.Misses > 0)
+}
+
+// Test Exists method with expired key cleanup
+func TestMemoryCache_ExistsCleanupOnExpiry(t *testing.T) {
+	config := MemoryCacheConfig{
+		MaxKeys:         10,
+		CleanupInterval: 1 * time.Hour, // Long interval to avoid interference
+	}
+	cache, err := NewMemoryCache(config)
+	assert.NoError(t, err)
+	defer func() { _ = cache.Close() }()
+
+	ctx := context.Background()
+	key := "exists-expire-key"
+	value := []byte("exists-expire-value")
+
+	// Set with very short TTL
+	err = cache.Set(ctx, key, value, 1*time.Millisecond)
+	assert.NoError(t, err)
+
+	// Should exist initially
+	exists := cache.Exists(ctx, key)
+	assert.True(t, exists)
+
+	// Wait for expiration
+	time.Sleep(10 * time.Millisecond)
+
+	// Exists should return false for expired key
+	exists = cache.Exists(ctx, key)
+	assert.False(t, exists)
+}
+
+// Test runCleanup method with stop channel
+func TestMemoryCache_CleanupStopChannel(t *testing.T) {
+	config := MemoryCacheConfig{
+		MaxKeys:         10,
+		CleanupInterval: 50 * time.Millisecond,
+	}
+	cache, err := NewMemoryCache(config)
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Add some keys
+	err = cache.Set(ctx, "key1", []byte("value1"), 1*time.Hour)
+	assert.NoError(t, err)
+
+	// Verify cleanup is running by waiting a bit
+	time.Sleep(10 * time.Millisecond)
+
+	// Close should trigger stop channel
+	err = cache.Close()
+	assert.NoError(t, err)
+
+	// Give time for cleanup goroutine to receive stop signal
+	time.Sleep(60 * time.Millisecond)
+}
+
+// Test runCleanup method with janitor stop channel
+func TestMemoryCache_CleanupJanitorStop(t *testing.T) {
+	config := MemoryCacheConfig{
+		MaxKeys:         10,
+		CleanupInterval: 20 * time.Millisecond, // Short interval
+	}
+	cache, err := NewMemoryCache(config)
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Add a key that will expire
+	err = cache.Set(ctx, "expire-key", []byte("expire-value"), 30*time.Millisecond)
+	assert.NoError(t, err)
+
+	// Let cleanup run once
+	time.Sleep(25 * time.Millisecond)
+
+	// Send stop signal to janitor specifically
+	if cache.janitor != nil {
+		select {
+		case cache.janitor.stop <- true:
+			// Signal sent
+		default:
+			// Channel might be full, that's okay
+		}
+	}
+
+	// Wait for cleanup goroutine to stop
+	time.Sleep(30 * time.Millisecond)
+
+	// Close cache
+	_ = cache.Close()
+}
