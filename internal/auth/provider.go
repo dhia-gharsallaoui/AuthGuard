@@ -18,6 +18,7 @@ const (
 	ProviderTypeUnknown ProviderType = iota
 	ProviderTypeFirebase
 	ProviderTypeIPWhitelist
+	ProviderTypeAPIKey
 )
 
 // String returns the string representation of the provider type
@@ -27,6 +28,8 @@ func (p ProviderType) String() string {
 		return "firebase"
 	case ProviderTypeIPWhitelist:
 		return "ip_whitelist"
+	case ProviderTypeAPIKey:
+		return "api_key"
 	default:
 		return "unknown"
 	}
@@ -39,6 +42,8 @@ func ParseProviderType(s string) ProviderType {
 		return ProviderTypeFirebase
 	case "ip_whitelist":
 		return ProviderTypeIPWhitelist
+	case "api_key":
+		return ProviderTypeAPIKey
 	default:
 		return ProviderTypeUnknown
 	}
@@ -89,7 +94,7 @@ func (ac *AuthContext) ReadBody() ([]byte, error) {
 type LockManager interface {
 	// Lock acquires a lock for the given key
 	Lock(key string)
-	
+
 	// Unlock releases the lock for the given key
 	Unlock(key string)
 }
