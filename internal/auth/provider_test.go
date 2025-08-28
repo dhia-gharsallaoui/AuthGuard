@@ -523,6 +523,31 @@ func (suite *AuthGuardTestSuite) TestValidateAuth_ValidationError() {
 	assert.Nil(suite.T(), claims)
 }
 
+func (suite *AuthGuardTestSuite) TestValidateAuth_SystemError() {
+	ctx := context.Background()
+	authCtx := &AuthContext{}
+	systemErr := errors.New("database connection failed")
+
+	// Register the provider first
+	suite.mockProvider.On("Type").Return(ProviderTypeFirebase)
+	suite.mockProvider.On("LoadConfig", suite.mockLoader).Return(nil)
+	suite.mockLogger.On("Info", "registered auth provider", "provider", "firebase")
+	err := suite.authGuard.RegisterProvider(suite.mockProvider)
+	assert.NoError(suite.T(), err)
+
+	// Setup expectations for system error
+	suite.mockProvider.On("Validate", ctx, authCtx).Return(nil, systemErr)
+	suite.mockMetrics.On("ObserveValidationDuration", "firebase", mock.AnythingOfType("time.Duration"))
+	suite.mockMetrics.On("IncValidationAttempts", "failure")
+	suite.mockLogger.On("Error", "authentication validation failed", "provider", "firebase", "error", systemErr)
+
+	claims, err := suite.authGuard.ValidateAuth(ctx, ProviderTypeFirebase, authCtx)
+
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), systemErr, err)
+	assert.Nil(suite.T(), claims)
+}
+
 func (suite *AuthGuardTestSuite) TestValidateMultiAuth_Success() {
 	ctx := context.Background()
 	authCtx := &AuthContext{
@@ -595,6 +620,114 @@ func (suite *AuthGuardTestSuite) TestValidateMultiAuth_EmptyProviders() {
 	assert.Nil(suite.T(), claims)
 }
 
+func (suite *AuthGuardTestSuite) TestValidateMultiAuth_ProviderNotFound() {
+	ctx := context.Background()
+	authCtx := &AuthContext{}
+
+	suite.mockMetrics.On("IncValidationAttempts", "provider_not_found")
+	suite.mockLogger.On("Error", "provider not found in multi-auth", "provider", "firebase")
+
+	providerTypes := []ProviderType{ProviderTypeFirebase}
+	claims, err := suite.authGuard.ValidateMultiAuth(ctx, providerTypes, authCtx)
+
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), ErrProviderNotFound, err)
+	assert.Nil(suite.T(), claims)
+}
+
+func (suite *AuthGuardTestSuite) TestValidateMultiAuth_ValidationFailure_UserError() {
+	ctx := context.Background()
+	authCtx := &AuthContext{}
+	userErr := ErrInvalidToken
+
+	// Register the provider first
+	suite.mockProvider.On("Type").Return(ProviderTypeFirebase)
+	suite.mockProvider.On("LoadConfig", suite.mockLoader).Return(nil)
+	suite.mockLogger.On("Info", "registered auth provider", "provider", "firebase")
+	err := suite.authGuard.RegisterProvider(suite.mockProvider)
+	assert.NoError(suite.T(), err)
+
+	// Setup expectations for validation failure
+	suite.mockProvider.On("Validate", ctx, authCtx).Return(nil, userErr)
+	suite.mockMetrics.On("ObserveValidationDuration", "firebase", mock.AnythingOfType("time.Duration"))
+	suite.mockMetrics.On("IncValidationAttempts", "failure")
+	suite.mockLogger.On("Debug", "authentication validation failed in multi-auth", 
+		"provider", "firebase", "providers", []string{"firebase"}, "error", userErr)
+
+	providerTypes := []ProviderType{ProviderTypeFirebase}
+	claims, err := suite.authGuard.ValidateMultiAuth(ctx, providerTypes, authCtx)
+
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), userErr, err)
+	assert.Nil(suite.T(), claims)
+}
+
+func (suite *AuthGuardTestSuite) TestValidateMultiAuth_ValidationFailure_SystemError() {
+	ctx := context.Background()
+	authCtx := &AuthContext{}
+	systemErr := errors.New("database connection failed")
+
+	// Register the provider first
+	suite.mockProvider.On("Type").Return(ProviderTypeFirebase)
+	suite.mockProvider.On("LoadConfig", suite.mockLoader).Return(nil)
+	suite.mockLogger.On("Info", "registered auth provider", "provider", "firebase")
+	err := suite.authGuard.RegisterProvider(suite.mockProvider)
+	assert.NoError(suite.T(), err)
+
+	// Setup expectations for validation failure
+	suite.mockProvider.On("Validate", ctx, authCtx).Return(nil, systemErr)
+	suite.mockMetrics.On("ObserveValidationDuration", "firebase", mock.AnythingOfType("time.Duration"))
+	suite.mockMetrics.On("IncValidationAttempts", "failure")
+	suite.mockLogger.On("Error", "authentication validation failed in multi-auth", 
+		"provider", "firebase", "providers", []string{"firebase"}, "error", systemErr)
+
+	providerTypes := []ProviderType{ProviderTypeFirebase}
+	claims, err := suite.authGuard.ValidateMultiAuth(ctx, providerTypes, authCtx)
+
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), systemErr, err)
+	assert.Nil(suite.T(), claims)
+}
+
+func (suite *AuthGuardTestSuite) TestValidateMultiAuth_SingleProvider() {
+	ctx := context.Background()
+	authCtx := &AuthContext{}
+
+	claims := &UserClaims{
+		Subject: "user123",
+		Email:   "user@example.com",
+	}
+
+	// Register the provider first
+	suite.mockProvider.On("Type").Return(ProviderTypeFirebase)
+	suite.mockProvider.On("LoadConfig", suite.mockLoader).Return(nil)
+	suite.mockLogger.On("Info", "registered auth provider", "provider", "firebase")
+	err := suite.authGuard.RegisterProvider(suite.mockProvider)
+	assert.NoError(suite.T(), err)
+
+	// Setup validation expectations
+	suite.mockProvider.On("Validate", ctx, authCtx).Return(claims, nil)
+	suite.mockMetrics.On("ObserveValidationDuration", "firebase", mock.AnythingOfType("time.Duration"))
+	suite.mockMetrics.On("IncValidationAttempts", "success")
+	suite.mockLogger.On("Debug", "provider validated successfully in multi-auth", "provider", "firebase", "subject", "user123")
+	suite.mockLogger.On("Debug", "multi-auth validation successful", "providers", []string{"firebase"}, "subject", "user123")
+
+	providerTypes := []ProviderType{ProviderTypeFirebase}
+	result, err := suite.authGuard.ValidateMultiAuth(ctx, providerTypes, authCtx)
+
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), result)
+	assert.Equal(suite.T(), "user123", result.Subject)
+	assert.Equal(suite.T(), "user@example.com", result.Email)
+	assert.Equal(suite.T(), ProviderTypeFirebase, result.Provider)
+	assert.Nil(suite.T(), result.CustomClaims) // Single provider should not have auth_providers claim
+}
+
+func (suite *AuthGuardTestSuite) TestLockManager() {
+	lockManager := suite.authGuard.LockManager()
+	assert.NotNil(suite.T(), lockManager)
+}
+
 func (suite *AuthGuardTestSuite) TestHealth() {
 	ctx := context.Background()
 
@@ -637,6 +770,208 @@ func (suite *AuthGuardTestSuite) TestClose() {
 	assert.NoError(suite.T(), err)
 }
 
+func (suite *AuthGuardTestSuite) TestClose_ProviderError() {
+	providerErr := errors.New("provider close failed")
+
+	// Register the provider first
+	suite.mockProvider.On("Type").Return(ProviderTypeFirebase)
+	suite.mockProvider.On("LoadConfig", suite.mockLoader).Return(nil)
+	suite.mockLogger.On("Info", "registered auth provider", "provider", "firebase")
+	err := suite.authGuard.RegisterProvider(suite.mockProvider)
+	assert.NoError(suite.T(), err)
+
+	// Setup close expectations with provider error
+	suite.mockLogger.On("Info", "closing AuthGuard", "providers_count", 1)
+	suite.mockLogger.On("Debug", "closing provider", "provider", ProviderTypeFirebase)
+	suite.mockProvider.On("Close").Return(providerErr)
+	suite.mockLogger.On("Error", "failed to close provider", "provider", ProviderTypeFirebase, "error", providerErr)
+	suite.mockLogger.On("Debug", "closing cache")
+	suite.mockCache.On("Close").Return(nil)
+	suite.mockLogger.On("Debug", "cache closed successfully")
+	suite.mockLogger.On("Info", "AuthGuard closed successfully")
+
+	err = suite.authGuard.Close()
+
+	// Should still succeed overall even if provider fails to close
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *AuthGuardTestSuite) TestClose_CacheError() {
+	cacheErr := errors.New("cache close failed")
+
+	// Register the provider first
+	suite.mockProvider.On("Type").Return(ProviderTypeFirebase)
+	suite.mockProvider.On("LoadConfig", suite.mockLoader).Return(nil)
+	suite.mockLogger.On("Info", "registered auth provider", "provider", "firebase")
+	err := suite.authGuard.RegisterProvider(suite.mockProvider)
+	assert.NoError(suite.T(), err)
+
+	// Setup close expectations with cache error
+	suite.mockLogger.On("Info", "closing AuthGuard", "providers_count", 1)
+	suite.mockLogger.On("Debug", "closing provider", "provider", ProviderTypeFirebase)
+	suite.mockProvider.On("Close").Return(nil)
+	suite.mockLogger.On("Debug", "provider closed successfully", "provider", ProviderTypeFirebase)
+	suite.mockLogger.On("Debug", "closing cache")
+	suite.mockCache.On("Close").Return(cacheErr)
+	suite.mockLogger.On("Error", "failed to close cache", "error", cacheErr)
+
+	err = suite.authGuard.Close()
+
+	// Should fail if cache fails to close
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), cacheErr, err)
+}
+
+func TestMergeClaims(t *testing.T) {
+	config := &Config{}
+	mockLoader := &MockConfigLoader{}
+	mockCache := &MockCache{}
+	mockMetrics := &MockMetrics{}
+	mockLogger := &MockLogger{}
+
+	authGuard := NewAuthGuard(config, mockLoader, mockCache, mockMetrics, mockLogger)
+
+	baseTime := time.Now()
+	newTime := baseTime.Add(time.Hour)
+
+	t.Run("Merge all fields", func(t *testing.T) {
+		baseClaims := &UserClaims{
+			Subject:       "olduser",
+			Email:         "old@example.com",
+			EmailVerified: false,
+			Name:          "Old Name",
+			Picture:       "old-pic.jpg",
+			IssuedAt:      baseTime,
+			ExpiresAt:     baseTime.Add(time.Minute * 30),
+			Issuer:        "old-issuer",
+			Audience:      []string{"old-aud"},
+			CustomClaims:  map[string]any{"old": "value"},
+		}
+
+		newClaims := &UserClaims{
+			Subject:       "newuser",
+			Email:         "new@example.com",
+			EmailVerified: true,
+			Name:          "New Name",
+			Picture:       "new-pic.jpg",
+			IssuedAt:      newTime,
+			ExpiresAt:     newTime.Add(time.Minute * 30),
+			Issuer:        "new-issuer",
+			Audience:      []string{"new-aud"},
+			CustomClaims:  map[string]any{"new": "value"},
+		}
+
+		result := authGuard.mergeClaims(baseClaims, newClaims, ProviderTypeFirebase)
+
+		assert.Equal(t, "newuser", result.Subject)
+		assert.Equal(t, "new@example.com", result.Email)
+		assert.True(t, result.EmailVerified)
+		assert.Equal(t, "New Name", result.Name)
+		assert.Equal(t, "new-pic.jpg", result.Picture)
+		assert.Equal(t, newTime, result.IssuedAt)
+		assert.Equal(t, newTime.Add(time.Minute*30), result.ExpiresAt)
+		assert.Equal(t, "new-issuer", result.Issuer)
+		assert.Equal(t, []string{"new-aud"}, result.Audience)
+		assert.Contains(t, result.CustomClaims, "old")
+		assert.Contains(t, result.CustomClaims, "new")
+	})
+
+	t.Run("Merge with empty new claims", func(t *testing.T) {
+		baseClaims := &UserClaims{
+			Subject:       "user",
+			Email:         "user@example.com",
+			EmailVerified: true,
+			Name:          "User Name",
+			Picture:       "pic.jpg",
+			IssuedAt:      baseTime,
+			ExpiresAt:     baseTime.Add(time.Hour),
+			Issuer:        "issuer",
+			Audience:      []string{"aud"},
+			CustomClaims:  map[string]any{"key": "value"},
+		}
+
+		newClaims := &UserClaims{}
+
+		result := authGuard.mergeClaims(baseClaims, newClaims, ProviderTypeFirebase)
+
+		// All original values should remain
+		assert.Equal(t, "user", result.Subject)
+		assert.Equal(t, "user@example.com", result.Email)
+		assert.True(t, result.EmailVerified)
+		assert.Equal(t, "User Name", result.Name)
+		assert.Equal(t, "pic.jpg", result.Picture)
+		assert.Equal(t, baseTime, result.IssuedAt)
+		assert.Equal(t, baseTime.Add(time.Hour), result.ExpiresAt)
+		assert.Equal(t, "issuer", result.Issuer)
+		assert.Equal(t, []string{"aud"}, result.Audience)
+		assert.Equal(t, map[string]any{"key": "value"}, result.CustomClaims)
+	})
+
+	t.Run("Merge with nil base custom claims", func(t *testing.T) {
+		baseClaims := &UserClaims{
+			Subject:      "user",
+			CustomClaims: nil,
+		}
+
+		newClaims := &UserClaims{
+			CustomClaims: map[string]any{"new": "value"},
+		}
+
+		result := authGuard.mergeClaims(baseClaims, newClaims, ProviderTypeFirebase)
+
+		assert.NotNil(t, result.CustomClaims)
+		assert.Equal(t, "value", result.CustomClaims["new"])
+	})
+
+	t.Run("Merge with nil new custom claims", func(t *testing.T) {
+		baseClaims := &UserClaims{
+			Subject:      "user",
+			CustomClaims: map[string]any{"existing": "value"},
+		}
+
+		newClaims := &UserClaims{
+			CustomClaims: nil,
+		}
+
+		result := authGuard.mergeClaims(baseClaims, newClaims, ProviderTypeFirebase)
+
+		assert.Equal(t, map[string]any{"existing": "value"}, result.CustomClaims)
+	})
+
+	t.Run("Merge with zero time values", func(t *testing.T) {
+		baseClaims := &UserClaims{
+			IssuedAt:  baseTime,
+			ExpiresAt: baseTime.Add(time.Hour),
+		}
+
+		newClaims := &UserClaims{
+			IssuedAt:  time.Time{}, // Zero time
+			ExpiresAt: time.Time{}, // Zero time
+		}
+
+		result := authGuard.mergeClaims(baseClaims, newClaims, ProviderTypeFirebase)
+
+		// Original times should remain
+		assert.Equal(t, baseTime, result.IssuedAt)
+		assert.Equal(t, baseTime.Add(time.Hour), result.ExpiresAt)
+	})
+
+	t.Run("Merge with empty audience", func(t *testing.T) {
+		baseClaims := &UserClaims{
+			Audience: []string{"original-aud"},
+		}
+
+		newClaims := &UserClaims{
+			Audience: []string{}, // Empty audience
+		}
+
+		result := authGuard.mergeClaims(baseClaims, newClaims, ProviderTypeFirebase)
+
+		// Original audience should remain
+		assert.Equal(t, []string{"original-aud"}, result.Audience)
+	})
+}
+
 func TestIsUserError(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -651,6 +986,31 @@ func TestIsUserError(t *testing.T) {
 		{
 			name:     "Token expired error",
 			err:      ErrTokenExpired,
+			expected: true,
+		},
+		{
+			name:     "Invalid issuer error",
+			err:      ErrInvalidIssuer,
+			expected: true,
+		},
+		{
+			name:     "Invalid audience error",
+			err:      ErrInvalidAudience,
+			expected: true,
+		},
+		{
+			name:     "Invalid signing method error",
+			err:      ErrInvalidSigningMethod,
+			expected: true,
+		},
+		{
+			name:     "Missing key ID error",
+			err:      ErrMissingKeyID,
+			expected: true,
+		},
+		{
+			name:     "Unauthorized error",
+			err:      ErrUnauthorized,
 			expected: true,
 		},
 		{
