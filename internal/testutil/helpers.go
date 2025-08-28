@@ -264,6 +264,42 @@ func (m *MockMetricsImpl) IncProviderRequests(provider string) {
 	m.Called(provider)
 }
 
+// MockAuthGuard creates a mock auth guard for testing
+func MockAuthGuard() *MockAuthGuardImpl {
+	return &MockAuthGuardImpl{}
+}
+
+// MockAuthGuardImpl is a mock implementation of AuthGuard for testing
+type MockAuthGuardImpl struct {
+	mock.Mock
+}
+
+func (m *MockAuthGuardImpl) ValidateAuth(ctx context.Context, providerType auth.ProviderType, authCtx *auth.AuthContext) (*auth.UserClaims, error) {
+	args := m.Called(ctx, providerType, authCtx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*auth.UserClaims), args.Error(1)
+}
+
+func (m *MockAuthGuardImpl) ValidateMultiAuth(ctx context.Context, providerTypes []auth.ProviderType, authCtx *auth.AuthContext) (*auth.UserClaims, error) {
+	args := m.Called(ctx, providerTypes, authCtx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*auth.UserClaims), args.Error(1)
+}
+
+func (m *MockAuthGuardImpl) Health(ctx context.Context) map[string]error {
+	args := m.Called(ctx)
+	return args.Get(0).(map[string]error)
+}
+
+func (m *MockAuthGuardImpl) Close() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
 // MockLogger creates a mock logger for testing
 func MockLogger() *MockLoggerImpl {
 	return &MockLoggerImpl{}

@@ -243,8 +243,8 @@ func TestRedisCache_Operations(t *testing.T) {
 		assert.Equal(t, int64(2), stats.Keys)
 
 		// Test some operations to check hits/misses
-		_, _ = cache.Get(ctx, "stats-key-1")  // Hit
-		_, _ = cache.Get(ctx, "nonexistent")  // Miss
+		_, _ = cache.Get(ctx, "stats-key-1") // Hit
+		_, _ = cache.Get(ctx, "nonexistent") // Miss
 
 		// Note: hits/misses are tracked in the cache struct, not Redis
 	})

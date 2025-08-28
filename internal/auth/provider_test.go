@@ -651,7 +651,7 @@ func (suite *AuthGuardTestSuite) TestValidateMultiAuth_ValidationFailure_UserErr
 	suite.mockProvider.On("Validate", ctx, authCtx).Return(nil, userErr)
 	suite.mockMetrics.On("ObserveValidationDuration", "firebase", mock.AnythingOfType("time.Duration"))
 	suite.mockMetrics.On("IncValidationAttempts", "failure")
-	suite.mockLogger.On("Debug", "authentication validation failed in multi-auth", 
+	suite.mockLogger.On("Debug", "authentication validation failed in multi-auth",
 		"provider", "firebase", "providers", []string{"firebase"}, "error", userErr)
 
 	providerTypes := []ProviderType{ProviderTypeFirebase}
@@ -678,7 +678,7 @@ func (suite *AuthGuardTestSuite) TestValidateMultiAuth_ValidationFailure_SystemE
 	suite.mockProvider.On("Validate", ctx, authCtx).Return(nil, systemErr)
 	suite.mockMetrics.On("ObserveValidationDuration", "firebase", mock.AnythingOfType("time.Duration"))
 	suite.mockMetrics.On("IncValidationAttempts", "failure")
-	suite.mockLogger.On("Error", "authentication validation failed in multi-auth", 
+	suite.mockLogger.On("Error", "authentication validation failed in multi-auth",
 		"provider", "firebase", "providers", []string{"firebase"}, "error", systemErr)
 
 	providerTypes := []ProviderType{ProviderTypeFirebase}

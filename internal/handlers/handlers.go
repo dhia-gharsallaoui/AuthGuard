@@ -10,6 +10,13 @@ import (
 	"authguard/internal/auth"
 )
 
+// AuthGuardInterface defines the interface for authentication guard operations
+type AuthGuardInterface interface {
+	ValidateAuth(ctx context.Context, providerType auth.ProviderType, authCtx *auth.AuthContext) (*auth.UserClaims, error)
+	ValidateMultiAuth(ctx context.Context, providerTypes []auth.ProviderType, authCtx *auth.AuthContext) (*auth.UserClaims, error)
+	Health(ctx context.Context) map[string]error
+}
+
 // HealthStatus represents health check status
 type HealthStatus int
 
@@ -40,14 +47,14 @@ func (h HealthStatus) MarshalJSON() ([]byte, error) {
 
 // Handlers contains all HTTP handlers with shared dependencies
 type Handlers struct {
-	authGuard *auth.AuthGuard
+	authGuard AuthGuardInterface
 	cache     auth.Cache
 	logger    auth.Logger
 	metrics   auth.Metrics
 }
 
 // NewHandlers creates a new handlers instance with injected dependencies
-func NewHandlers(authGuard *auth.AuthGuard, cache auth.Cache, logger auth.Logger, metrics auth.Metrics) *Handlers {
+func NewHandlers(authGuard AuthGuardInterface, cache auth.Cache, logger auth.Logger, metrics auth.Metrics) *Handlers {
 	return &Handlers{
 		authGuard: authGuard,
 		cache:     cache,

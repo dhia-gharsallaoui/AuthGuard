@@ -127,18 +127,18 @@ func TestLoader_Load_WithEnvironmentOverrides(t *testing.T) {
 
 	// Set environment variables
 	envVars := map[string]string{
-		"TEST_SERVER_PORT":         "3000",
-		"TEST_SERVER_HOST":         "127.0.0.1",
+		"TEST_SERVER_PORT":          "3000",
+		"TEST_SERVER_HOST":          "127.0.0.1",
 		"TEST_SERVER_READ_TIMEOUT":  "5s",
 		"TEST_SERVER_WRITE_TIMEOUT": "7s",
-		"TEST_LOG_LEVEL":           "error",
-		"TEST_LOG_FORMAT":          "text",
-		"TEST_METRICS_ENABLED":     "false",
-		"TEST_PROVIDERS":           "firebase,ip_whitelist",
-		"TEST_CACHE_TYPE":          "redis",
-		"TEST_REDIS_URL":           "redis://localhost:6379/2",
-		"TEST_REDIS_PASSWORD":      "testpass",
-		"TEST_REDIS_DB":            "3",
+		"TEST_LOG_LEVEL":            "error",
+		"TEST_LOG_FORMAT":           "text",
+		"TEST_METRICS_ENABLED":      "false",
+		"TEST_PROVIDERS":            "firebase,ip_whitelist",
+		"TEST_CACHE_TYPE":           "redis",
+		"TEST_REDIS_URL":            "redis://localhost:6379/2",
+		"TEST_REDIS_PASSWORD":       "testpass",
+		"TEST_REDIS_DB":             "3",
 	}
 
 	for key, value := range envVars {

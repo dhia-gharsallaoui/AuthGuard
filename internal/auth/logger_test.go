@@ -188,7 +188,7 @@ func TestLogFormat_Constants(t *testing.T) {
 // Test round-trip conversion for LogLevel
 func TestLogLevel_RoundTrip(t *testing.T) {
 	levels := []LogLevel{LogLevelDebug, LogLevelInfo, LogLevelWarn, LogLevelError}
-	
+
 	for _, level := range levels {
 		str := level.String()
 		parsed := ParseLogLevel(str)
@@ -199,7 +199,7 @@ func TestLogLevel_RoundTrip(t *testing.T) {
 // Test round-trip conversion for LogFormat
 func TestLogFormat_RoundTrip(t *testing.T) {
 	formats := []LogFormat{LogFormatJSON, LogFormatText}
-	
+
 	for _, format := range formats {
 		str := format.String()
 		parsed := ParseLogFormat(str)

@@ -13,14 +13,14 @@ import (
 type Server struct {
 	httpServer *http.Server
 	config     *auth.Config
-	authGuard  *auth.AuthGuard
+	authGuard  AuthGuardInterface
 	cache      auth.Cache
 	logger     auth.Logger
 	metrics    auth.Metrics
 }
 
 // NewServer creates a new HTTP server
-func NewServer(config *auth.Config, authGuard *auth.AuthGuard, cache auth.Cache, logger auth.Logger, metrics auth.Metrics) *Server {
+func NewServer(config *auth.Config, authGuard AuthGuardInterface, cache auth.Cache, logger auth.Logger, metrics auth.Metrics) *Server {
 	return &Server{
 		config:    config,
 		authGuard: authGuard,

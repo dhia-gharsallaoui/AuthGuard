@@ -60,7 +60,7 @@ func TestNewCache(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, cache)
-		
+
 		// Verify it's a memory cache
 		memCache, ok := cache.(*MemoryCache)
 		assert.True(t, ok)
@@ -87,7 +87,7 @@ func TestNewCache(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, cache)
-		
+
 		// Should fallback to memory cache
 		_, ok := cache.(*MemoryCache)
 		assert.True(t, ok)
@@ -116,7 +116,7 @@ func TestNewCache(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, cache)
-		
+
 		// Should fallback to memory cache due to connection failure
 		_, ok := cache.(*MemoryCache)
 		assert.True(t, ok)
@@ -141,7 +141,7 @@ func TestNewCache(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, cache)
-		
+
 		// Should default to memory cache
 		_, ok := cache.(*MemoryCache)
 		assert.True(t, ok)
@@ -168,7 +168,7 @@ func TestCreateRedisCache(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, cache)
-		
+
 		// Should be memory cache
 		_, ok := cache.(*MemoryCache)
 		assert.True(t, ok)
@@ -196,7 +196,7 @@ func TestCreateRedisCache(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, cache)
-		
+
 		// Should fallback to memory cache
 		_, ok := cache.(*MemoryCache)
 		assert.True(t, ok)
@@ -251,7 +251,7 @@ func TestCreateMemoryCache(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, cache)
-		
+
 		memCache, ok := cache.(*MemoryCache)
 		assert.True(t, ok)
 		assert.Equal(t, 500, memCache.maxKeys)
@@ -266,7 +266,7 @@ func TestCreateMemoryCache(t *testing.T) {
 		mockLogger.On("Info", "memory cache initialized successfully")
 
 		config := auth.CacheConfig{
-			MaxKeys:         -100,         // Invalid
+			MaxKeys:         -100,              // Invalid
 			CleanupInterval: time.Duration(-1), // Invalid
 		}
 
@@ -275,7 +275,7 @@ func TestCreateMemoryCache(t *testing.T) {
 		// Should still work due to defaults in NewMemoryCache
 		assert.NoError(t, err)
 		assert.NotNil(t, cache)
-		
+
 		memCache, ok := cache.(*MemoryCache)
 		assert.True(t, ok)
 		// Should use defaults
