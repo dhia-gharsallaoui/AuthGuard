@@ -25,6 +25,7 @@ cache:
 providers:
   - firebase
   - ip_whitelist
+  - api_key
 
 # Logging Configuration
 logging:
@@ -47,6 +48,10 @@ metrics:
 # AUTHGUARD_IP_WHITELIST_ALLOWED_IPS="127.0.0.1,::1,192.168.1.0/24"
 # AUTHGUARD_IP_WHITELIST_PROXY_HEADER="X-Real-IP"
 # AUTHGUARD_IP_WHITELIST_TRUSTED_PROXIES="10.0.0.0/8,172.16.0.0/12"
+#
+# API Key Provider:
+# AUTHGUARD_API_KEY_KEYS="key1:user1:email1@example.com:User One,key2:user2:email2@example.com:User Two"
+# AUTHGUARD_API_KEY_HEADER_NAME="X-API-Key"
 #
 # Cache Configuration (override YAML):
 # AUTHGUARD_CACHE_TYPE="redis"

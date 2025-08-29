@@ -14,6 +14,7 @@ import (
 	"authguard/internal/handlers"
 	"authguard/internal/logging"
 	"authguard/internal/metrics"
+	"authguard/internal/providers/apikey"
 	"authguard/internal/providers/firebase"
 	ipwhitelist "authguard/internal/providers/ip_whitelist"
 )
@@ -163,6 +164,11 @@ func registerProviders(authGuard *auth.AuthGuard, config *auth.Config, cache aut
 			provider := ipwhitelist.NewProvider(cache, lockManager, logger, metrics)
 			if err := authGuard.RegisterProvider(provider); err != nil {
 				return fmt.Errorf("failed to register ip_whitelist provider: %w", err)
+			}
+		case auth.ProviderTypeAPIKey:
+			provider := apikey.NewProvider(cache, lockManager, logger, metrics)
+			if err := authGuard.RegisterProvider(provider); err != nil {
+				return fmt.Errorf("failed to register api_key provider: %w", err)
 			}
 		default:
 			logger.Warn("unknown provider type", "provider", providerType)

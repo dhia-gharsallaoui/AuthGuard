@@ -27,7 +27,8 @@ AuthGuard's core strength is its **composable authentication architecture**. The
 |----------|------|-------------|----------|
 | **firebase** | JWT | Firebase Admin SDK validation | User authentication with JWTs |
 | **ip_whitelist** | Network | CIDR-based IP filtering | Internal services, admin access |
-| **[extensible]** | Any | Add your own providers | OAuth2, LDAP, API Keys, etc. |
+| **api_key** | Token | API key authentication | Service-to-service auth, programmatic access |
+| **[extensible]** | Any | Add your own providers | OAuth2, LDAP, etc. |
 
 ### Provider Composition Examples
 
@@ -37,6 +38,12 @@ proxy_set_header X-Auth-Providers "firebase";
 
 # Multi-provider (ALL must pass)
 proxy_set_header X-Auth-Providers "firebase,ip_whitelist";
+
+# API key authentication for services
+proxy_set_header X-Auth-Providers "api_key";
+
+# Combined user + service authentication
+proxy_set_header X-Auth-Providers "firebase,api_key";
 
 # Network-only authentication
 proxy_set_header X-Auth-Providers "ip_whitelist";
@@ -112,6 +119,7 @@ graph TD
 
 - ✅ **Firebase**: JWT token validation using Firebase Admin SDK
 - ✅ **IP Whitelist**: Network-based authentication with CIDR support  
+- ✅ **API Key**: Token-based authentication for service-to-service communication
 - 🔄 **Extensible**: Add new providers like Auth0, Keycloak, OAuth2, SAML, LDAP and use them in chaining authentication
 
 ## Composable Authentication
@@ -124,6 +132,9 @@ proxy_set_header X-Auth-Providers "firebase";
 
 # Multiple providers (ALL must succeed)  
 proxy_set_header X-Auth-Providers "firebase,ip_whitelist";
+
+# API key authentication for services
+proxy_set_header X-Auth-Providers "api_key";
 
 # IP whitelist only (for internal services)
 proxy_set_header X-Auth-Providers "ip_whitelist";
@@ -323,6 +334,22 @@ server {
         proxy_set_header Content-Length "";
         proxy_set_header Authorization $http_authorization;
         proxy_set_header X-Auth-Providers "firebase,ip_whitelist";
+    }
+    
+    # API key authentication for service APIs
+    location /api/v1 {
+        auth_request /auth-api;
+        # ... backend proxy
+    }
+    
+    location /auth-api {
+        internal;
+        proxy_pass http://authguard/validate;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-API-Key $http_x_api_key;
+        proxy_set_header Authorization $http_authorization;
+        proxy_set_header X-Auth-Providers "api_key";
     }
     
     # IP Whitelist only for internal services
