@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"authguard/internal/auth"
+
 	"github.com/redis/go-redis/v9"
 )
 
